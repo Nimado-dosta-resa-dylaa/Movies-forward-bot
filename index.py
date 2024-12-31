@@ -2,7 +2,7 @@ import requests
 import time
 import json
 
-bot_token = "7227008474:AAHHetoc7vZ-ITIw7AI4k1MKztoKOKHoi3w"
+bot_token = "7227008474:AAHfFTIOxU8MX6LDDQd7C5K-MXD0PImNJz0"
 from_chat_id = "-1001800348098"
 to_chat_id = "-1001972766787"
 admin_chat_id = "6573541531"  # Admin chat ID, replace with actual ID
