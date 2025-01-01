@@ -1,50 +1,44 @@
-import requests
-import time
-import json
+from telethon.sync import TelegramClient
+from telethon.sessions import StringSession
+from collections import defaultdict
+import asyncio
 
-bot_token = "7227008474:AAHfFTIOxU8MX6LDDQd7C5K-MXD0PImNJz0"
-from_chat_id = "-1001800348098"
-to_chat_id = "-1001972766787"
-admin_chat_id = "6573541531"  # Admin chat ID, replace with actual ID
+# Aapka API ID aur API Hash
+api_id = '25105744'
+api_hash = '0ca4154111e7b0f99e9929710faa3f25'
 
-# Function to send copyMessages request with a batch of message IDs
-def send_copy_messages_request(from_chat_id, to_chat_id, message_ids):
-    url = f"https://api.telegram.org/bot{bot_token}/copyMessages?chat_id={to_chat_id}&from_chat_id={from_chat_id}&message_ids={json.dumps(message_ids)}"
-    response = requests.get(url)
-    return response.json()
+# Aapka string session yahan dalein
+string_session = "1BJWap1sBu6omS2_iVngaPxEQRgCyWmukbK8mQ-WTSSSjbJPX31mPLEI1XZjX7n7ceVZfD7WknjhrXSs7UWSCpx2vUkzvWb9N-QJ_aeCjsLFDfeF0xFMzeItpS64sbAJpLVtsxS3z_115ky-ag_HqnnxMcCqqXGm-LilTu6PG4s1NOF39VeXxoK5nGQdass_UqSOgsGRlXvubEuvI89QyNTm6Euu-VmrWXspWlsR6fBY0LTgW5OuXG_5avqZTuY79qRaUaAT2s7deOunpF1yuU0We08m5CMFt0QEYZMW-qA7Zc2B9dzxZ5kPkDufJzZQRpPOMr3UwJglsa87xybaq8Pm0KzJzi9U="
+channel_username = -1001972766787
+admin_id = '@PrivateMoviesOwner' # Telegram Admin ID
+batch_size = 100  # Batch size
+delay_between_batches = 3  # Delay between batches in seconds
 
-# Function to send a message to the admin chat
-def send_admin_message(text):
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    payload = {
-        "chat_id": admin_chat_id,
-        "text": text
-    }
-    response = requests.post(url, json=payload)
-    return response.json()
+# String session se client ko initialize karein
+client = TelegramClient(StringSession(string_session), api_id, api_hash)
 
-# Batch size kitni ID ek request mein bhejni hai
-batch_size = 100  # Adjust this value as needed
+async def delete_duplicate_videos():
+    video_messages = defaultdict(list)
 
-# Loop through message IDs from 100000 to 150000 in batches
-for start_id in range(119720, 2942800, batch_size):
-    end_id = min(start_id + batch_size - 1, 150000)
-    message_ids = list(range(start_id, end_id + 1))
-
-    result = send_copy_messages_request(from_chat_id, to_chat_id, message_ids)
+    async for message in client.iter_messages(channel_username):
+        if message.video:
+            file_id = message.video.id
+            video_messages[file_id].append(message)
     
-    if not result['ok'] and result['error_code'] == 429:
-        wait_time = result['parameters']['retry_after']
-        print(f"Too Many Requests. Waiting for {wait_time} seconds...")
-        time.sleep(wait_time)
-        # Retry the same batch after waiting
-        result = send_copy_messages_request(from_chat_id, to_chat_id, message_ids)
-    
-    log_message = f"Message IDs {start_id} to {end_id}: {result}"
-    print(log_message)
+    for file_id, msgs in video_messages.items():
+        if len(msgs) > 1:
+            # Process in batches
+            for i in range(1, len(msgs), batch_size):
+                batch = msgs[i:i + batch_size]
+                for msg in batch:
+                    await client.delete_messages(channel_username, msg.id)
+                    
+                    # Log ko admin ID par bhejein
+                    log_message = f"Deleted duplicate video: File ID: {file_id}, Message ID: {msg.id}"
+                    await client.send_message(admin_id, log_message)
+                
+                # Wait between batches
+                await asyncio.sleep(delay_between_batches)
 
-    # Send log to admin chat
-    send_admin_message(log_message)
-
-    # Extra sleep to avoid hitting the rate limit frequently
-    time.sleep(2)
+with client:
+    client.loop.run_until_complete(delete_duplicate_videos())
