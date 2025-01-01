@@ -13,10 +13,19 @@ channel_username = -1001972766787
 admin_id = '@PrivateMoviesOwner' # Telegram Admin ID
 batch_size = 100  # Batch size
 delay_between_batches = 3  # Delay between batches in seconds
-
+status_message_interval = 10
 # String session se client ko initialize karein
 client = TelegramClient(StringSession(string_session), api_id, api_hash)
 
+async def send_status_messages():
+    """Admin ko periodic status messages bhejne ke liye."""
+    while True:
+        try:
+            await client.send_message(admin_id, "Working...")
+        except Exception as e:
+            print(f"Error sending status message: {e}")
+        await asyncio.sleep(status_message_interval) 
+        
 async def delete_duplicate_videos():
     video_messages = defaultdict(list)
 
