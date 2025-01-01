@@ -27,7 +27,7 @@ def send_admin_message(text):
 batch_size = 100  # Adjust this value as needed
 
 # Loop through message IDs from 100000 to 150000 in batches
-for start_id in range(4321, 294280, batch_size):
+for start_id in range(119720, 2942800, batch_size):
     end_id = min(start_id + batch_size - 1, 150000)
     message_ids = list(range(start_id, end_id + 1))
 
